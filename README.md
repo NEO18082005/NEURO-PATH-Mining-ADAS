@@ -59,3 +59,42 @@
 2. **Process:** ESP32-CAM calculates distance and updates the LCD.
 3. **Alert:** If distance < 20cm, Red LED flashes and Buzzer sounds.
 4. **Stream:** Live video is sent to the dashboard via local Wi-Fi.
+
+
+
+# 🛒 Master Component List: Blind Spot Safety System
+
+## 1. Core Computing & Power
+| Component | Quantity | Role | Notes |
+| :--- | :---: | :--- | :--- |
+| **ESP32-CAM-MB** | 1 | Main Controller | Includes the built-in USB/Serial shield. |
+| **Micro-USB Cable** | 1 | Power & Data | Connects the ESP to your laptop. |
+| **9V Battery Snap to DC Jack**| 1 | Portable Power | Connects a 9V battery to the power module. |
+| **MB102 Power Supply Module**| 1 | Voltage Regulator | Safely drops 9V battery to 5V for the breadboard. |
+| **9V HW Battery** | 2 | Power Source | Keep 1 extra; they drain fast during camera use. |
+
+## 2. Sensors & Actuators (The Hardware)
+| Component | Quantity | Role | Notes |
+| :--- | :---: | :--- | :--- |
+| **HC-SR04 Ultrasonic** | 1 | Radar Sweep | Scans 180° for general obstacles. |
+| **VL53L0X ToF Sensor** | 1 | Precision Laser | For critical <20cm "Stop" zone detection. |
+| **SG90 Servo Motor** | 1 | Motion | Rotates the sensors back and forth. |
+| **16x2 I2C LCD Display** | 1 | Dashboard | Shows real-time distance and status text. |
+
+## 3. Visual & Audio Indicators
+| Component | Quantity | Role | Notes |
+| :--- | :---: | :--- | :--- |
+| **Green LED (5mm)** | 2 | "SAFE" Light | Extra included in case one fails. |
+| **Yellow LED (5mm)** | 2 | "CAUTION" Light | Extra included. |
+| **Red LED (5mm)** | 3 | "DANGER" Light | These fail most due to buzzer load. |
+| **Active Piezo Buzzer** | 1 | Audible Alarm | Triggers with the Red LED. |
+
+## 4. Discrete Components (The Small Parts)
+| Component | Quantity | Value | Notes |
+| :--- | :---: | :--- | :--- |
+| **Resistors** | 5 | 220Ω | For Green and Yellow LEDs. |
+| **Resistors** | 5 | 470Ω | For Red LED (protects I2C pins 14/15). |
+| **Electrolytic Capacitor** | 2 | 100µF or 220µF| Stabilizes power for the Servo/Camera. |
+| **Jumper Wires (M-to-M)** | 1 Pack | Connection | For breadboard-to-breadboard links. |
+| **Jumper Wires (M-to-F)** | 1 Pack | Connection | For connecting sensors to the ESP pins. |
+| **Full-Size Breadboard** | 1 | Base | The 830-point board is best for this project. |
