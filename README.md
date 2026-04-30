@@ -1,100 +1,77 @@
-# Blind-Spot-Safety-System
+# AG~3 NEURO-PATH: Intelligent Blindspot & Trajectory System
 
-# Project: ADAS Blind Spot Safety System (Prototype Phase)
-**Goal:** To eliminate heavy vehicle "No-Zones" using a multi-modal sensor fusion approach on a cardboard RC truck chassis.
-
----
-
-## 1. Problem & Solution Overview
-
-* **The Problem:** Large trucks have massive blind spots (No-Zones) where cyclists and pedestrians become invisible to the driver.
-* **The Solution:** A "Sensor Fusion" module providing 180° spatial awareness via Ultrasonic Radar, Precision Laser (ToF), and Live Video Streaming.
+**Neuro-Path** is a sophisticated sensor-fusion safety system designed for blindspot monitoring. This repository contains the core firmware for the **Sensory Fusion Module** and an optional **Standalone Surveillance Module**.
 
 ---
 
-## 2. Component List & Functional Roles
+## 🛠 Project Architecture
 
-### A. Central Processing (The Brain)
-* **ESP32-CAM-MB:** Handles the Wi-Fi web server for live video and processes all logic.
-* **Micro-USB Shield:** Provides stable power and a direct interface for code uploading.
-
-### B. Detection Suite (The Eyes)
-* **HC-SR04 (Ultrasonic):** Scans a 180° arc to detect the general presence of objects.
-* **VL53L0X (Laser ToF):** Provides pinpoint millimetric accuracy for critical "Stop" zones.
-* **SG90 Servo Motor:** Rotates the sensors to create a dynamic "Radar" sweep.
-
-### C. Driver Interface (Alerts)
-* **16x2 I2C LCD:** Displays real-time distance readouts in centimeters.
-* **Active Piezo Buzzer:** Provides high-frequency audible alerts, synchronized with the Red LED.
-* **Traffic Light LEDs:** * **Green (Safe):** Clear path (> 50cm).
-    * **Yellow (Caution):** Approaching hazard (20cm - 50cm).
-    * **Red (Danger):** Immediate collision risk (< 20cm).
+The system is now split into two distinct functional blocks:
+1. **Primary Sensor Fusion (V8.2):** Handles Laser ToF, Ultrasonic data, and real-time cockpit feedback.
+2. **Optional Surveillance Module:** A dedicated ESP32-CAM board running a high-bandwidth video server.
 
 ---
 
-## 3. Wiring & Connection Strategy
+## 📋 Component List & Specifications
 
-
-
-### Master Pin Mapping Table
-| Component        | Pin Name | ESP32-CAM Pin | Notes                                   |
-|------------------|----------|---------------|-----------------------------------------|
-| I2C Bus (LCD/Laser)| SDA      | GPIO 14       | Shared Data line           |
-| I2C Bus (LCD/Laser)| SCL      | GPIO 15       | Shared Clock line          |
-| Ultrasonic Sensor| Trig     | GPIO 12       | Trigger pulse              |
-| Ultrasonic Sensor| Echo     | GPIO 16       | Pulse return (U2RX)        |
-| Servo Motor      | Signal   | GPIO 13       | Sweep control              |
-| Green LED        | Anode(+) | GPIO 2        | Status Indicator           |
-| Yellow LED       | Anode(+) | GPIO 14       | Shared with SDA (470Ω resistor)|
-| Red LED/Buzzer   | Anode(+) | GPIO 15       | Shared with SCL (470Ω resistor)|
-
-### Power & Stabilization
-* **Capacitor (100µF - 220µF):** Must be placed across the 5V and GND rails to prevent "Brownout" resets during servo movement.
-* **Resistors (220Ω - 470Ω):** Used with all LEDs to protect pins and prevent I2C signal interference.
+| Component | Quantity | Role in Neuro-Path |
+| :--- | :--- | :--- |
+| **ESP32-CAM** | 1 (or 2) | Core Processor for Logic & Vision |
+| **VL53L0X Laser ToF** | 1 | High-precision distance measurement |
+| **HC-SR04 Ultrasonic** | 1 | Wide-angle proximity detection |
+| **I2C LCD (16x2)** | 1 | Real-time Cockpit Telemetry |
+| **SG90 Servo Motor** | 1 | 180° Radar Sweep Actuator |
+| **Active Buzzer** | 1 | Audio Alert (Movement Gated) |
+| **LED Array (R, Y, G)** | 3 | Visual Status Indicators |
+| **10kΩ Resistors** | 2 | Pull-down resistors for Signal Stability |
+| **RC Vehicle Interface** | 1 | Forward/Backward Signal Input |
 
 ---
 
-## 4. Working Workflow
-1. **Sweep:** The Servo moves 1°, triggering the HC-SR04 and VL53L0X.
-2. **Process:** ESP32-CAM calculates distance and updates the LCD.
-3. **Alert:** If distance < 20cm, Red LED flashes and Buzzer sounds.
-4. **Stream:** Live video is sent to the dashboard via local Wi-Fi.
+## 🔌 Technical Pin Mapping (Sensory Fusion Board)
 
+> **Note:** Red LED and Buzzer are strictly gated by the vehicle's motion state. They will remain silent when the vehicle is stationary to prevent operator fatigue.
 
+| Component | Pin | Notes |
+| :--- | :--- | :--- |
+| **Laser & LCD (SDA)** | GPIO 14 | Shared I2C Bus |
+| **Laser & LCD (SCL)** | GPIO 15 | Shared I2C Bus |
+| **RC Forward (F)** | GPIO 13 | High = Moving |
+| **RC Backward (B)** | GPIO 12 | High = Moving |
+| **Ultrasonic Trig** | GPIO 0 | Proximity Trigger |
+| **Ultrasonic Echo** | GPIO 3 | Proximity Echo |
+| **Servo Signal** | GPIO 16 | PWM Radar Sweep |
+| **Red LED + Buzzer**| GPIO 1 | Alert (Active only when Moving) |
+| **Yellow LED** | GPIO 4 | Caution/Slow Zone |
+| **Green LED** | GPIO 2 | System Clear |
 
-# 🛒 Master Component List: Blind Spot Safety System
+---
 
-## 1. Core Computing & Power
-| Component | Quantity | Role | Notes |
-| :--- | :---: | :--- | :--- |
-| **ESP32-CAM-MB** | 1 | Main Controller | Includes the built-in USB/Serial shield. |
-| **Micro-USB Cable** | 1 | Power & Data | Connects the ESP to your laptop. |
-| **9V Battery Snap to DC Jack**| 1 | Portable Power | Connects a 9V battery to the power module. |
-| **MB102 Power Supply Module**| 1 | Voltage Regulator | Safely drops 9V battery to 5V for the breadboard. |
-| **9V HW Battery** | 2 | Power Source | Keep 1 extra; they drain fast during camera use. |
+## 🚀 Installation & Boot Sequence
 
-## 2. Sensors & Actuators (The Hardware)
-| Component | Quantity | Role | Notes |
-| :--- | :---: | :--- | :--- |
-| **HC-SR04 Ultrasonic** | 1 | Radar Sweep | Scans 180° for general obstacles. |
-| **VL53L0X ToF Sensor** | 1 | Precision Laser | For critical <20cm "Stop" zone detection. |
-| **SG90 Servo Motor** | 1 | Motion | Rotates the sensors back and forth. |
-| **16x2 I2C LCD Display** | 1 | Dashboard | Shows real-time distance and status text. |
+### **1. Firmware Upload**
+Flash the `NEURO-PATH_V8.2.ino` to your primary ESP32-CAM. 
+* **Critical:** Unplug the wire from GPIO 0 during upload to avoid bootloader conflicts.
 
-## 3. Visual & Audio Indicators
-| Component | Quantity | Role | Notes |
-| :--- | :---: | :--- | :--- |
-| **Green LED (5mm)** | 2 | "SAFE" Light | Extra included in case one fails. |
-| **Yellow LED (5mm)** | 2 | "CAUTION" Light | Extra included. |
-| **Red LED (5mm)** | 3 | "DANGER" Light | These fail most due to buzzer load. |
-| **Active Piezo Buzzer** | 1 | Audible Alarm | Triggers with the Red LED. |
+### **2. System Initialization**
+Upon power-up, the system executes the following:
+* **Screen 1 (3s):** `NEURO-PATH BLINDSPOT SYS`
+* **Screen 2 (1s):** `SYSTEM BOOT...` (Sensor Calibration)
 
-## 4. Discrete Components (The Small Parts)
-| Component | Quantity | Value | Notes |
-| :--- | :---: | :--- | :--- |
-| **Resistors** | 5 | 220Ω | For Green and Yellow LEDs. |
-| **Resistors** | 5 | 470Ω | For Red LED (protects I2C pins 14/15). |
-| **Electrolytic Capacitor** | 2 | 100µF or 220µF| Stabilizes power for the Servo/Camera. |
-| **Jumper Wires (M-to-M)** | 1 Pack | Connection | For breadboard-to-breadboard links. |
-| **Jumper Wires (M-to-F)** | 1 Pack | Connection | For connecting sensors to the ESP pins. |
-| **Full-Size Breadboard** | 1 | Base | The 830-point board is best for this project. |
+### **3. Operational Logic**
+* **🟢 Status Clear:** No objects detected. Green LED Active.
+* **🟡 Caution Slow:** Object in medium range (15cm - 35cm). Yellow LED Active. If moving, pulsed audio warning.
+* **🔴 Critical Alert:** Object < 15cm. Red LED Active. If moving, continuous high-frequency audio alert.
+
+---
+
+## 🎥 Optional: Standalone Camera Server
+For users adding the second ESP32-CAM for live recording:
+1. Flash the standard `CameraWebServer` example.
+2. Mount the second board at a high vantage point on the vehicle.
+3. Access the live feed via the local IP displayed in the Serial Monitor.
+
+---
+
+## 📜 Authors
+* **Subhan Khan** - *Lead Developer & BCA Student* - [K.K. Modi University]
