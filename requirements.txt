@@ -1,4 +1,4 @@
-# AG~3 NEURO-PATH Vision Edge Dependencies
+# NEURO-PATH Vision Node + ESP32 UART Telemetry Dependencies
 opencv-python>=4.8.0
 numpy>=1.24.0
 pyserial>=3.5
