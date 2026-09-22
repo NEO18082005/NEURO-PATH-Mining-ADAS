@@ -173,6 +173,10 @@ This repository does not claim certification for autonomous control, emergency b
 - **Project:** NEURO-PATH
 - **SIH Problem Statement:** SIH26007
 
+## ⚠️ Safety & Liability Disclaimer
+
+This project was developed as an experimental prototype for the Smart India Hackathon 2026 and is not a certified production safety system. NEURO-PATH is an experimental Advanced Driver Assistance System (ADAS); the creators assume no liability for hardware failures, and it must not replace certified OEM safety systems in active mining environments without official DGMS and ISO compliance testing.
+
 ## 📄 License
 
 This project is released under the [MIT License](LICENSE).
