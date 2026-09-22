@@ -1,86 +1,204 @@
 """
- * PROJECT:     AG~3 NEURO-PATH - Industrial Vision Edge
- * DESCRIPTION: High-speed binary serial reassembly and YOLOv8 neural network inference engine
- * for heavy industrial ADAS and worker safety tracking (PS 1).
- * VERSION:     3.0 (ET Hackathon Edition)
+PROJECT:     NEURO-PATH - Edge-AI Vision Node
+PLATFORM:    Poco F1 / Snapdragon 845-class edge device
+DESCRIPTION: Runs YOLOv8 Nano on the native camera while receiving fused
+             Radar/Sonar distance telemetry from the ESP32 over UART.
+VERSION:     SIH 2026 Zero-Cloud Architecture
 """
 
+from __future__ import annotations
+
+import threading
+from typing import Optional
+
 import cv2
-import numpy as np
 import serial
+from serial import SerialException
 from ultralytics import YOLO
 
-# Initialize YOLOv8 Nano
-model = YOLO("yolov8n.pt")
 
-SERIAL_PORT = "COM4"
+# Configure these values for the Poco F1 / Termux or a desktop test host.
+SERIAL_PORT = "COM4"  # Use /dev/ttyUSB0 or /dev/ttyACM0 on Linux/Termux.
 BAUD_RATE = 115200
+CAMERA_INDEX = 0  # Native Poco F1 camera index.
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
+CONFIDENCE_THRESHOLD = 0.40
+DANGER_DISTANCE_CM = 150
 
-try:
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.01)
-    ser.set_buffer_size(rx_size=128000, tx_size=128000)
-    ser.reset_input_buffer()
-    print(f"[SYSTEM OK] Locked onto Industrial Hardware Core on {SERIAL_PORT}. Building UI...")
-except Exception as e:
-    print(f"[FATAL ERROR]: Could not open {SERIAL_PORT}. Ensure your Arduino IDE Serial Monitor is CLOSED!")
-    exit()
+# COCO classes requested for the NEURO-PATH vision node:
+# 0 = person, 2 = car, 5 = bus, 7 = truck.
+DETECTION_CLASSES = [0, 2, 5, 7]
 
-raw_bytes = bytearray()
 
-while True:
-    if ser.in_waiting > 0:
-        raw_bytes.extend(ser.read(ser.in_waiting))
-    
-    # Search for JPEG Start/End markers
-    start = raw_bytes.find(b'\xff\xd8')
-    end = raw_bytes.find(b'\xff\xd9')
-    
-    if start != -1 and end != -1 and end > start:
-        jpg_segment = raw_bytes[start:end+2]
-        del raw_bytes[:end+2]
-        
-        # Decompress frame
-        frame = cv2.imdecode(np.frombuffer(jpg_segment, dtype=np.uint8), cv2.IMREAD_COLOR)
-        
-        if frame is not None:
-            # HACKATHON FIX: Added Class 0 (Person/Worker) and 7 (Truck/Machinery)
-            results = model(frame, stream=True, classes=[0, 2, 5, 7], conf=0.35) 
-            closest_target_distance = 999
+class Esp32TelemetryReader:
+    """Read fused ESP32 distance telemetry without blocking camera inference."""
+
+    def __init__(self, port: str, baud_rate: int) -> None:
+        self.port = port
+        self.baud_rate = baud_rate
+        self._distance_cm: Optional[int] = None
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    @property
+    def distance_cm(self) -> Optional[int]:
+        with self._lock:
+            return self._distance_cm
+
+    def start(self) -> None:
+        self._thread = threading.Thread(
+            target=self._read_loop,
+            name="ESP32-UART-Telemetry",
+            daemon=True,
+        )
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+
+    def _read_loop(self) -> None:
+        try:
+            with serial.Serial(self.port, self.baud_rate, timeout=0.10) as connection:
+                print(f"[SYSTEM OK] ESP32 telemetry link established on {self.port}")
+                while not self._stop_event.is_set():
+                    raw_line = connection.readline()
+                    if not raw_line:
+                        continue
+
+                    line = raw_line.decode("utf-8", errors="ignore").strip()
+                    if not line.startswith("DIST:"):
+                        continue
+
+                    value = line.split(":", 1)[1].strip()
+                    try:
+                        distance = int(value)
+                    except ValueError:
+                        continue
+
+                    with self._lock:
+                        self._distance_cm = distance
+        except SerialException as error:
+            print(f"[WARNING] ESP32 telemetry link offline: {error}")
+        finally:
+            print("[SYSTEM] ESP32 telemetry reader stopped")
+
+
+def class_name(model: YOLO, class_id: int) -> str:
+    names = model.names
+    if isinstance(names, dict):
+        return str(names.get(class_id, class_id)).upper()
+    return str(names[class_id]).upper()
+
+
+def draw_hud(frame, distance_cm: Optional[int], telemetry_online: bool) -> None:
+    """Draw the operator-facing radar/vision status overlay."""
+    panel_color = (0, 0, 0)
+    cv2.rectangle(frame, (10, 10), (460, 88), panel_color, -1)
+
+    if distance_cm is None:
+        distance_text = "SCANNING..."
+        distance_color = (0, 255, 255)
+    else:
+        distance_text = f"{distance_cm} cm"
+        distance_color = (0, 0, 255) if distance_cm < DANGER_DISTANCE_CM else (0, 255, 0)
+
+    link_text = "UART: ONLINE" if telemetry_online else "UART: OFFLINE"
+    cv2.putText(
+        frame,
+        f"RADAR THREAT: {distance_text}",
+        (20, 42),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.70,
+        distance_color,
+        2,
+        cv2.LINE_AA,
+    )
+    cv2.putText(
+        frame,
+        link_text,
+        (20, 72),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.55,
+        (255, 255, 255),
+        1,
+        cv2.LINE_AA,
+    )
+
+
+def main() -> int:
+    print("[SYSTEM] Loading YOLOv8 Nano...")
+    model = YOLO("yolov8n.pt")
+
+    telemetry = Esp32TelemetryReader(SERIAL_PORT, BAUD_RATE)
+    telemetry.start()
+
+    # Native camera feed: no ESP32-CAM JPEG decoding or binary reassembly.
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+
+    if not cap.isOpened():
+        print(f"[ERROR] Could not open native camera index {CAMERA_INDEX}.")
+        telemetry.stop()
+        return 1
+
+    print("[SYSTEM OK] NEURO-PATH Vision Node active. Press Q to quit.")
+
+    try:
+        while True:
+            success, frame = cap.read()
+            if not success:
+                print("[ERROR] Native camera feed lost.")
+                break
+
+            # Detect only Person, Car, Bus, and Truck from the YOLOv8 COCO model.
+            results = model(
+                frame,
+                stream=True,
+                classes=DETECTION_CLASSES,
+                conf=CONFIDENCE_THRESHOLD,
+                verbose=False,
+            )
 
             for result in results:
-                boxes = result.boxes
-                for box in boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                for box in result.boxes:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                     confidence = float(box.conf[0])
-                    label = model.names[int(box.cls[0])]
+                    detected_id = int(box.cls[0])
+                    label = class_name(model, detected_id)
 
-                    # Spatial Distance Math
-                    box_height = y2 - y1 if (y2 - y1) > 0 else 1
-                    K_FACTOR = 6000  
-                    estimated_distance = K_FACTOR / box_height
-                    
-                    if estimated_distance < closest_target_distance:
-                        closest_target_distance = int(estimated_distance)
+                    cv2.rectangle(frame, (x1, y1), (0, 255, 255), 2)
+                    cv2.putText(
+                        frame,
+                        f"VISION: {label} | {confidence:.2f}",
+                        (x1, max(y1 - 10, 20)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.50,
+                        (0, 255, 255),
+                        2,
+                        cv2.LINE_AA,
+                    )
 
-                    # Dynamic UI Coloration (Red for critical strike zone)
-                    color = (0, 0, 255) if estimated_distance < 1.5 else (0, 255, 255)
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                    cv2.putText(frame, f"HAZARD: {label} {confidence:.2f} | Dist: {estimated_distance:.1f}m", 
-                                (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+            draw_hud(
+                frame,
+                telemetry.distance_cm,
+                telemetry._thread is not None and telemetry._thread.is_alive(),
+            )
+            cv2.imshow("NEURO-PATH HUD - Poco F1 Edge AI", frame)
 
-            # Fire serial trigger back to ESP32 Hardware Core
-            if closest_target_distance != 999:
-                ser.write(f"DIST:{closest_target_distance}\n".encode('utf-8'))
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+    finally:
+        cap.release()
+        telemetry.stop()
+        cv2.destroyAllWindows()
 
-            cv2.imshow("NEURO-PATH Industrial HUD (ACTIVE)", frame)
+    return 0
 
-    # Memory Leak Prevention
-    elif len(raw_bytes) > 50000:
-        raw_bytes.clear()
-        ser.reset_input_buffer()
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-ser.close()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    raise SystemExit(main())
