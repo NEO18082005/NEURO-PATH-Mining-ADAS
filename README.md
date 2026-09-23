@@ -27,6 +27,8 @@ NEURO-PATH is a zero-cloud Advanced Driver Assistance System for heavy mine vehi
 
 The system is designed as a retrofit safety layer for legacy mining fleets, with local telemetry, operator feedback, and offline operation.
 
+**📖 For full mathematical models, sensor physics, and deployment roadmaps, please read our [Detailed Project Report](NEURO_PATH_Detailed_Project_Report.md).**
+
 > Prototype performance figures and nuisance-alarm reduction targets must be validated through controlled field testing before production or safety-critical deployment.
 
 ## ✨ Key Features
