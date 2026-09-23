@@ -101,9 +101,11 @@ flowchart LR
 
 ```text
 .
-├── ESP32_CAM_Vision_Transmitter.ino
-├── Primary_Sensory_Fusion.ino
-├── Secondary_Vision_Module.py
+├── docs/
+│   └── architecture_diagrams.png
+├── NEURO_PATH_Deterministic_Core.ino
+├── NEURO_PATH_Vision_Node.py
+├── NEURO_PATH_Detailed_Project_Report.md
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -116,8 +118,8 @@ flowchart LR
 Install the ESP32 board package in Arduino IDE, select the correct board, connect the sensor node, and flash the relevant sketch.
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 Primary_Sensory_Fusion.ino
-arduino-cli upload -p <ESP32_PORT> --fqbn esp32:esp32:esp32 Primary_Sensory_Fusion.ino
+arduino-cli compile --fqbn esp32:esp32:esp32 NEURO_PATH_Deterministic_Core.ino
+arduino-cli upload -p <ESP32_PORT> --fqbn esp32:esp32:esp32 NEURO_PATH_Deterministic_Core.ino
 ```
 
 Replace `<ESP32_PORT>` with a port such as `COM5` or `/dev/ttyUSB0`. The ESP32-CAM transmitter sketch can be compiled and uploaded similarly after selecting the appropriate camera board profile.
@@ -142,7 +144,7 @@ source .venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
-python Secondary_Vision_Module.py
+python NEURO_PATH_Vision_Node.py
 ```
 
 The exact camera source, model path, serial port, and Snapdragon runtime configuration may vary by deployment.
