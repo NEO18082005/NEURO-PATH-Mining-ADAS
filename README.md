@@ -15,7 +15,7 @@
 | Ministry | Ministry of Steel |
 | Implementation Context | NMDC Bailadila |
 | Team | **THYNK UNIQUE** |
-| Team Lead | **Subhan Khan** |
+| Team Lead | **Saurabh Chandravanshi** |
 
 ---
 
@@ -173,7 +173,7 @@ This repository does not claim certification for autonomous control, emergency b
 
 **THYNK UNIQUE**
 
-- **Team Lead:** Subhan Khan
+- **Team Lead:** Saurabh Chandravanshi
 - **Project:** NEURO-PATH
 - **SIH Problem Statement:** SIH26007
 
