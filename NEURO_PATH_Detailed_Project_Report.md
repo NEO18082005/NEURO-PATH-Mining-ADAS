@@ -12,7 +12,7 @@
 **Category:** Hardware  
 **Team ID:** 122928  
 **Team Name:** THYNK UNIQUE  
-**Team Lead:** Subhan Khan  
+**Team Lead:** Saurabh Chandravanshi  
 **Target Deployment Site:** NMDC Bailadila Iron Ore Mines  
 
 ---
@@ -1152,9 +1152,9 @@ However, the presence of a prototype system must not be interpreted as automatic
 
 ---
 
-## 11.2 ISO 16001:2020
+## 11.2 ISO 16001:2017
 
-The project materials identify **ISO 16001:2020** as a relevant standard for earth-moving machinery, object detection systems and visibility aids.
+The project materials identify **ISO 16001:2017** as a relevant standard for earth-moving machinery, object detection systems and visibility aids.
 
 NEURO-PATH is designed to support an engineering assessment against the standard’s relevant principles, including:
 
